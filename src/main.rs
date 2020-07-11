@@ -34,7 +34,10 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                                 println!("Invalid nested Expr");
                             }
                         }
-                    }                },
+                    } else {
+                        println!("SuperCall Unhandled");
+                    }
+                },
                 _ => {
                     let call_type = "UnAuditCallee";
                     if let Some(l) = locate {
