@@ -4,7 +4,9 @@ use swc::ecmascript::ast;
 
 pub enum Syntax {
     Stmt(ast::Stmt),
-    Expr(ast::Expr)
+    Expr(ast::Expr),
+    Func(ast::Function)
+
 }
 
 pub type Callback = fn(&Syntax) -> ();
