@@ -1,57 +1,128 @@
 #![warn(non_upper_case_globals)]
 
 use std::env;
+use std::sync::Mutex;
 use std::path::Path;
 use swc::ecmascript::ast;
 use swc::common::Span;
+use serde_json::json;
+use serde_json::to_value;
 use lazy_static::lazy_static;
 use asteroid::typescript::ast::Syntax;
 use asteroid::typescript::ast::audit_script;
 use asteroid::typescript::parser;
-use asteroid::typescript::ast::print_as_json;
-use asteroid::report::Reporter;
+use asteroid::report::{self, Reporter};
 
 
 lazy_static! {
-    static ref reporter: Reporter = Reporter::new();
+    static ref reporter: Mutex<Reporter> = Mutex::new(Reporter::new());
 }
+
 
 fn callback(syn: &Syntax, locate: Option<&Span>) {
     match syn {
         Syntax::Callee(expr) => {
             match expr {
                 ast::Expr::Ident(i) => {
-                    let call_type = "PureCallee";
-                    println!("[{:?}{:?}], {} {}", i.span.lo(), i.span.hi(), call_type, i.sym.to_ascii_lowercase());
+                    reporter.lock().unwrap().report(
+                        report::Kind::FnCall,
+                        Some(i.span),
+                        report::Level::Default,
+                        to_value(expr).unwrap(),
+                        json!({
+                            "call_type": "PureCallee",
+                            "func_name": i.sym.to_ascii_lowercase()
+                        }),
+                        None,
+                        None
+                    )
                 },
                 ast::Expr::Member(i) => {
-                    let call_type = "MemberCallee";
                     if let ast::ExprOrSuper::Expr(e) = &i.obj {
                         match &**e {
                             ast::Expr::Ident(id) => {
                                 if let ast::Expr::Ident(prop) = &*i.prop {
-                                    println!("[{:?}{:?}], {} {}.{}", id.span.lo(), id.span.hi(), call_type, id.sym.to_ascii_lowercase(), prop.sym.to_ascii_lowercase());
+                                    reporter.lock().unwrap().report(
+                                        report::Kind::MethodCall,
+                                        Some(id.span),
+                                        report::Level::Default,
+                                        to_value(expr).unwrap(),
+                                        json!({
+                                            "call_type": "MemberCallee",
+                                            "func_name": format!(
+                                                "{}.{}",
+                                                id.sym.to_ascii_lowercase(),
+                                                prop.sym.to_ascii_lowercase()
+                                            )
+                                        }),
+                                        None,
+                                        None
+                                    )
                                 } else {
-                                    println!("Invalid nested Expr");
+                                    reporter.lock().unwrap().report(
+                                        report::Kind::MethodCall,
+                                        Some(id.span),
+                                        report::Level::Warning,
+                                        to_value(expr).unwrap(),
+                                        json!({
+                                            "call_type": "MemberCallee",
+                                            "func_name": "UnknowYet!"
+                                        }),
+                                        None,
+                                        Some("Invalid Nested Expr".to_string())
+                                    );
                                 }
                             },
                             _ => {
-                                println!("Invalid nested Expr");
+                                reporter.lock().unwrap().report(
+                                    report::Kind::MethodCall,
+                                    locate.map(|a| *a),
+                                    report::Level::Warning,
+                                    to_value(expr).unwrap(),
+                                    json!({
+                                        "call_type": "MemberCallee",
+                                        "func_name": "UnknowYet!"
+                                    }),
+                                    None,
+                                    Some("Invalid Nested Expr".to_string())
+                                );
                             }
+
                         }
                     } else {
-                        println!("SuperCall Unhandled");
+                        if let ast::Expr::Ident(id) = &*i.prop {
+                            reporter.lock().unwrap().report(
+                                report::Kind::MethodCall,
+                                Some(id.span),
+                                report::Level::Warning,
+                                to_value(expr).unwrap(),
+                                json!({
+                                    "call_type": "MemberCallee",
+                                    "func_name": format!(
+                                        "Super.{}",
+                                        id.sym.to_ascii_lowercase()
+                                    )
+                                }),
+                                None,
+                                Some("SuperCall of unknow obj".to_string())
+                            );
+                        }
                     }
                 },
                 _ => {
-                    let call_type = "UnAuditCallee";
-                    if let Some(l) = locate {
-                        println!("[{:?}{:?}], {}", l.lo(), l.hi(), call_type);
-                    } else {
-                        println!("[?, ?], {}", call_type);
-                    }
-                    print_as_json(expr);
-                }
+                    reporter.lock().unwrap().report(
+                        report::Kind::MethodCall,
+                        locate.map(|a| *a),
+                        report::Level::Critical,
+                        to_value(expr).unwrap(),
+                        json!({
+                            "call_type": "UnAuditedCallee",
+                            "func_name": "UnKnowYet!"
+                        }),
+                        None,
+                        None
+                    );
+               }
             }
         }
         _ => ()
@@ -63,4 +134,5 @@ fn main() {
     let args: Vec<String> = env::args().collect();
     let script = parser::parse_file(Path::new(&args[1]));
     audit_script(&script, &Some(Box::new(callback)));
+    println!("{}", reporter.lock().unwrap().to_json());
 }
