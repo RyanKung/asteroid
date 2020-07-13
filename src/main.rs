@@ -1,15 +1,20 @@
+#![warn(non_upper_case_globals)]
+
 use std::env;
-use std::any::Any;
 use std::path::Path;
 use swc::ecmascript::ast;
+use swc::common::Span;
+use lazy_static::lazy_static;
 use asteroid::typescript::ast::Syntax;
 use asteroid::typescript::ast::audit_script;
 use asteroid::typescript::parser;
 use asteroid::typescript::ast::print_as_json;
-use asteroid::typescript::ast::as_value;
-use swc::common::AstNode;
-use swc::common::Span;
+use asteroid::report::Reporter;
 
+
+lazy_static! {
+    static ref reporter: Reporter = Reporter::new();
+}
 
 fn callback(syn: &Syntax, locate: Option<&Span>) {
     match syn {
@@ -57,5 +62,5 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
 fn main() {
     let args: Vec<String> = env::args().collect();
     let script = parser::parse_file(Path::new(&args[1]));
-    audit_script(&script, Some(callback));
+    audit_script(&script, &Some(Box::new(callback)));
 }

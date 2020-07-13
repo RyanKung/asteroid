@@ -25,11 +25,10 @@ pub enum Syntax {
     Callee(ast::Expr)
 }
 
+pub type Callback = Box<dyn Fn(&Syntax, Option<&Span>) -> ()>;
 
-pub type Callback = fn(&Syntax, Option<&Span>) -> ();
 
-
-pub fn audit_script(script: &ast::Script, callback: Option<Callback>) {
+pub fn audit_script(script: &ast::Script, callback: &Option<Callback>) {
     audit_stmts(&script.body, callback);
     if let Some(f) = callback {
         f(&Syntax::Script(script.clone()), Some(&script.span));
@@ -37,13 +36,13 @@ pub fn audit_script(script: &ast::Script, callback: Option<Callback>) {
 }
 
 
-pub fn audit_stmts(stmts: &Vec<ast::Stmt>, callback: Option<Callback>) {
+pub fn audit_stmts(stmts: &Vec<ast::Stmt>, callback: &Option<Callback>) {
     for stmt in stmts {
         audit_stmt(&stmt, callback);
     }
 }
 
-pub fn audit_stmt(stmt: &ast::Stmt, callback: Option<Callback>) {
+pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
     match stmt {
         ast::Stmt::Block(s) => audit_block(s, callback),
         ast::Stmt::With(s) => {
@@ -154,11 +153,11 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: Option<Callback>) {
 }
 
 
-fn audit_block(stmt: &ast::BlockStmt, callback: Option<Callback>) {
+fn audit_block(stmt: &ast::BlockStmt, callback: &Option<Callback>) {
     audit_stmts(&stmt.stmts, callback);
 }
 
-fn audit_pat(pat: &ast::Pat, callback: Option<Callback>) {
+fn audit_pat(pat: &ast::Pat, callback: &Option<Callback>) {
 
     match pat {
         ast::Pat::Ident(_) => (),
@@ -190,7 +189,7 @@ fn audit_pat(pat: &ast::Pat, callback: Option<Callback>) {
 }
 
 
-fn audit_var_decl(decl: &ast::VarDecl, callback: Option<Callback>) {
+fn audit_var_decl(decl: &ast::VarDecl, callback: &Option<Callback>) {
     for d in &decl.decls {
         audit_pat(&d.name, callback);
         if let Some(expr) = &d.init {
@@ -199,7 +198,7 @@ fn audit_var_decl(decl: &ast::VarDecl, callback: Option<Callback>) {
     }
 }
 
-fn audit_decl(decl: &ast::Decl, callback: Option<Callback>) {
+fn audit_decl(decl: &ast::Decl, callback: &Option<Callback>) {
     match decl {
         ast::Decl::Class(s) => audit_class(&s.class, callback),
         ast::Decl::Fn(s) => audit_fn_decl(&s, callback),
@@ -225,7 +224,7 @@ fn audit_decl(decl: &ast::Decl, callback: Option<Callback>) {
     }
 }
 
-fn audit_obj_pat_prop(prop: &ast::ObjectPatProp, callback: Option<Callback>) {
+fn audit_obj_pat_prop(prop: &ast::ObjectPatProp, callback: &Option<Callback>) {
     match prop {
         ast::ObjectPatProp::KeyValue(s) => {
             audit_pat(&s.value, callback);
@@ -242,7 +241,7 @@ fn audit_obj_pat_prop(prop: &ast::ObjectPatProp, callback: Option<Callback>) {
 }
 
 
-fn audit_class(cls: &ast::Class, callback: Option<Callback>) {
+fn audit_class(cls: &ast::Class, callback: &Option<Callback>) {
     for d in &cls.decorators {
         audit_expr(&d.expr, callback);
     }
@@ -254,7 +253,7 @@ fn audit_class(cls: &ast::Class, callback: Option<Callback>) {
     }
 }
 
-fn audit_class_member(cls_m: &ast::ClassMember,  callback: Option<Callback>) {
+fn audit_class_member(cls_m: &ast::ClassMember,  callback: &Option<Callback>) {
     match cls_m {
         ast::ClassMember::Constructor(s) => {
             audit_prop_name(&s.key, callback);
@@ -299,7 +298,7 @@ fn audit_class_member(cls_m: &ast::ClassMember,  callback: Option<Callback>) {
     }
 }
 
-fn audit_ts_fn_param(param: &ast::TsFnParam, callback: Option<Callback>) {
+fn audit_ts_fn_param(param: &ast::TsFnParam, callback: &Option<Callback>) {
     match param {
         ast::TsFnParam::Ident(s) => {
             audit_pat(&ast::Pat::from(s.clone()), callback);
@@ -318,7 +317,7 @@ fn audit_ts_fn_param(param: &ast::TsFnParam, callback: Option<Callback>) {
 
 }
 
-fn audit_prop_name(name: &ast::PropName, callback: Option<Callback>) {
+fn audit_prop_name(name: &ast::PropName, callback: &Option<Callback>) {
     match name {
         ast::PropName::Computed(e) => {
             audit_expr(&e.expr, callback);
@@ -328,7 +327,7 @@ fn audit_prop_name(name: &ast::PropName, callback: Option<Callback>) {
 }
 
 
-fn audit_param_prop(prop: &ast::ParamOrTsParamProp, callback: Option<Callback>) {
+fn audit_param_prop(prop: &ast::ParamOrTsParamProp, callback: &Option<Callback>) {
     match prop {
         ast::ParamOrTsParamProp::TsParamProp(s) => {
             for d in &s.decorators {
@@ -346,14 +345,14 @@ fn audit_param_prop(prop: &ast::ParamOrTsParamProp, callback: Option<Callback>) 
 }
 
 
-fn audit_param(param: &ast::Param, callback: Option<Callback>) {
+fn audit_param(param: &ast::Param, callback: &Option<Callback>) {
     for d in &param.decorators {
         audit_expr(&d.expr, callback);
     }
     audit_pat(&param.pat, callback);
 }
 
-fn audit_fn(func: &ast::Function, callback: Option<Callback>) {
+fn audit_fn(func: &ast::Function, callback: &Option<Callback>) {
     for p in &func.params {
         audit_param(&p, callback);
     }
@@ -368,7 +367,7 @@ fn audit_fn(func: &ast::Function, callback: Option<Callback>) {
     }
 }
 
-fn audit_ts_type_ele(ele: &ast::TsTypeElement, callback: Option<Callback>) {
+fn audit_ts_type_ele(ele: &ast::TsTypeElement, callback: &Option<Callback>) {
     match &ele {
         ast::TsTypeElement::TsCallSignatureDecl(s) => {
             for p in &s.params {
@@ -404,7 +403,7 @@ fn audit_ts_type_ele(ele: &ast::TsTypeElement, callback: Option<Callback>) {
     }
 }
 
-fn audit_ts_namespace(ns: &ast::TsNamespaceBody, callback: Option<Callback>) {
+fn audit_ts_namespace(ns: &ast::TsNamespaceBody, callback: &Option<Callback>) {
     match &ns {
         ast::TsNamespaceBody::TsModuleBlock(s) => {
             for m in &s.body {
@@ -420,7 +419,7 @@ fn audit_ts_namespace(ns: &ast::TsNamespaceBody, callback: Option<Callback>) {
     }
 }
 
-pub fn audit_expr(expr: &ast::Expr, callback: Option<Callback>) {
+pub fn audit_expr(expr: &ast::Expr, callback: &Option<Callback>) {
     match &expr {
         ast::Expr::This(_) => (),
         ast::Expr::Array(s) => {
@@ -538,7 +537,7 @@ pub fn audit_expr(expr: &ast::Expr, callback: Option<Callback>) {
 
 }
 
-pub fn audit_prop(prop: &ast::Prop, callback: Option<Callback>) {
+pub fn audit_prop(prop: &ast::Prop, callback: &Option<Callback>) {
     match prop {
         ast::Prop::Shorthand(_) => (),
         ast::Prop::KeyValue(s) => {
@@ -585,7 +584,7 @@ pub fn audit_module_decl(_decl: &ast::ModuleDecl) {
 }
 
 
-pub fn audit_call(call: &ast::CallExpr, callback: Option<Callback>) {
+pub fn audit_call(call: &ast::CallExpr, callback: &Option<Callback>) {
     match &call.callee {
         ast::ExprOrSuper::Expr(s) => audit_callee(&call.span, &s, callback),
         ast::ExprOrSuper::Super(_) => ()
@@ -599,7 +598,7 @@ pub fn audit_call(call: &ast::CallExpr, callback: Option<Callback>) {
 }
 
 
-pub fn audit_fn_decl(decl: &ast::FnDecl, callback: Option<Callback>) {
+pub fn audit_fn_decl(decl: &ast::FnDecl, callback: &Option<Callback>) {
     audit_fn(&decl.function, callback);
     if let Some(f) = callback {
         f(&Syntax::Decl(ast::Decl::Fn(decl.clone())), None);
@@ -607,7 +606,7 @@ pub fn audit_fn_decl(decl: &ast::FnDecl, callback: Option<Callback>) {
 }
 
 
-pub fn audit_callee(locate: &Span, expr: &ast::Expr, callback: Option<Callback>) {
+pub fn audit_callee(locate: &Span, expr: &ast::Expr, callback: &Option<Callback>) {
     audit_expr(&expr, callback);
     if let Some(f) = callback {
         f(&Syntax::Callee(expr.clone()), Some(locate));
