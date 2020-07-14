@@ -1,5 +1,6 @@
 use swc::ecmascript::ast;
 use swc::common::Span;
+use std::any::Any;
 use serde_json;
 
 
@@ -25,13 +26,16 @@ pub enum Syntax {
     Callee(ast::Expr)
 }
 
-pub type Callback = Box<dyn Fn(&Syntax, Option<&Span>) -> ()>;
+pub type Callback = Box<dyn Fn(&Syntax, Option<&Span>) -> Box<dyn Any>>;
 
 
-pub fn audit_script(script: &ast::Script, callback: &Option<Callback>) {
+pub fn audit_script(script: &ast::Script, callback: &Option<Callback>) -> Option<Box<dyn Any>> {
     audit_stmts(&script.body, callback);
-    if let Some(f) = callback {
-        f(&Syntax::Script(script.clone()), Some(&script.span));
+    match callback {
+        Some(f) => {
+            Some(f(&Syntax::Script(script.clone()), Some(&script.span)))
+        },
+        None => None
     }
 }
 

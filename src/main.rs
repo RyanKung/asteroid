@@ -14,7 +14,11 @@ use asteroid::typescript::parser;
 use asteroid::report::{self, Reporter};
 
 
-fn callback(syn: &Syntax, locate: Option<&Span>, mut reporter: RefMut<Reporter>) {
+fn callback(
+    syn: &Syntax,
+    locate: Option<&Span>,
+    mut reporter: RefMut<Reporter>)
+{
     match syn {
         Syntax::Callee(expr) => {
             match expr {
@@ -120,9 +124,6 @@ fn callback(syn: &Syntax, locate: Option<&Span>, mut reporter: RefMut<Reporter>)
                }
             }
         },
-        Syntax::Script(_) => {
-            println!("{}", reporter.to_json());
-        }
         _ => ()
     }
 }
@@ -134,6 +135,20 @@ fn main() {
     let script = parser::parse_file(Path::new(&args[1]));
     let callback_wrapper: Callback = Box::new(move |x, y| {
         callback(x, y, reporter.borrow_mut());
+        let ret:Box<RefCell<Reporter>> = Box::new(reporter.clone());
+        ret
     });
-    audit_script(&script, &Some(callback_wrapper));
+    match audit_script(&script, &Some(callback_wrapper)) {
+        Some(ret) => {
+            let rep: Option<&RefCell<Reporter>> = ret.downcast_ref::<RefCell<Reporter>>();
+            if let Some(r) = rep {
+                println!("{}", r.borrow().to_json());
+            } else {
+                panic!("failed on downcast")
+            }
+        },
+        None => {
+            panic!("Callback Should return Rporter")
+        }
+    }
 }
