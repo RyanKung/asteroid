@@ -135,8 +135,7 @@ fn main() {
     let script = parser::parse_file(Path::new(&args[1]));
     let callback_wrapper: Callback = Box::new(move |x, y| {
         callback(x, y, reporter.borrow_mut());
-        let ret:Box<RefCell<Reporter>> = Box::new(reporter.clone());
-        ret
+        Box::new(reporter.clone())
     });
     match audit_script(&script, &Some(callback_wrapper)) {
         Some(ret) => {
