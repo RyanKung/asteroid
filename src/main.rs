@@ -1,30 +1,25 @@
 #![warn(non_upper_case_globals)]
 
 use std::env;
-use std::sync::Mutex;
+use std::cell::{RefCell, RefMut};
 use std::path::Path;
 use swc::ecmascript::ast;
 use swc::common::Span;
 use serde_json::json;
 use serde_json::to_value;
-use lazy_static::lazy_static;
 use asteroid::typescript::ast::Syntax;
+use asteroid::typescript::ast::Callback;
 use asteroid::typescript::ast::audit_script;
 use asteroid::typescript::parser;
 use asteroid::report::{self, Reporter};
 
 
-lazy_static! {
-    static ref reporter: Mutex<Reporter> = Mutex::new(Reporter::new());
-}
-
-
-fn callback(syn: &Syntax, locate: Option<&Span>) {
+fn callback(syn: &Syntax, locate: Option<&Span>, mut reporter: RefMut<Reporter>) {
     match syn {
         Syntax::Callee(expr) => {
             match expr {
                 ast::Expr::Ident(i) => {
-                    reporter.lock().unwrap().report(
+                    reporter.report(
                         report::Kind::FnCall,
                         Some(i.span),
                         report::Level::Default,
@@ -42,7 +37,7 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                         match &**e {
                             ast::Expr::Ident(id) => {
                                 if let ast::Expr::Ident(prop) = &*i.prop {
-                                    reporter.lock().unwrap().report(
+                                    reporter.report(
                                         report::Kind::MethodCall,
                                         Some(id.span),
                                         report::Level::Default,
@@ -59,7 +54,7 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                                         None
                                     )
                                 } else {
-                                    reporter.lock().unwrap().report(
+                                    reporter.report(
                                         report::Kind::MethodCall,
                                         Some(id.span),
                                         report::Level::Warning,
@@ -74,7 +69,7 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                                 }
                             },
                             _ => {
-                                reporter.lock().unwrap().report(
+                                reporter.report(
                                     report::Kind::MethodCall,
                                     locate.map(|a| *a),
                                     report::Level::Warning,
@@ -91,7 +86,7 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                         }
                     } else {
                         if let ast::Expr::Ident(id) = &*i.prop {
-                            reporter.lock().unwrap().report(
+                            reporter.report(
                                 report::Kind::MethodCall,
                                 Some(id.span),
                                 report::Level::Warning,
@@ -110,7 +105,7 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                     }
                 },
                 _ => {
-                    reporter.lock().unwrap().report(
+                    reporter.report(
                         report::Kind::MethodCall,
                         locate.map(|a| *a),
                         report::Level::Critical,
@@ -124,6 +119,9 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
                     );
                }
             }
+        },
+        Syntax::Script(_) => {
+            println!("{}", reporter.to_json());
         }
         _ => ()
     }
@@ -131,8 +129,11 @@ fn callback(syn: &Syntax, locate: Option<&Span>) {
 
 
 fn main() {
+    let reporter: RefCell<Reporter> = RefCell::new(Reporter::new());
     let args: Vec<String> = env::args().collect();
     let script = parser::parse_file(Path::new(&args[1]));
-    audit_script(&script, &Some(Box::new(callback)));
-    println!("{}", reporter.lock().unwrap().to_json());
+    let callback_wrapper: Callback = Box::new(move |x, y| {
+        callback(x, y, reporter.borrow_mut());
+    });
+    audit_script(&script, &Some(callback_wrapper));
 }

@@ -30,7 +30,7 @@ pub struct Datum {
 
 type ReportData = HashMap<Kind, Vec<Datum>>;
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 pub struct Reporter {
     pub data: ReportData
 }
