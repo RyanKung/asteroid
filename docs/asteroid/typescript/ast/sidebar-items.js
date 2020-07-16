@@ -1,1 +1,0 @@
-initSidebarItems({"enum":[["Syntax",""]],"fn":[["as_value",""],["audit_call",""],["audit_callee",""],["audit_expr",""],["audit_fn_decl",""],["audit_module_decl",""],["audit_prop",""],["audit_script",""],["audit_stmt",""],["audit_stmts",""],["print_as_json",""]],"type":[["Callback",""]]});

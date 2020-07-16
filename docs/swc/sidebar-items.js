@@ -1,1 +1,0 @@
-initSidebarItems({"macro":[["chain_at",""]],"mod":[["config",""]],"struct":[["Compiler",""],["PassBuilder","Builder is used to create a high performance `Compiler`."],["SourceFileInput",""],["TransformOutput",""]],"trait":[["Pass","Crazy trait to make traversal fast again."]]});

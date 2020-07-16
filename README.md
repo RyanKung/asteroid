@@ -1,6 +1,14 @@
 Asteroid
 ================
 
+
+## Document
+
+```sh
+cargo doc --open
+```
+
+
 ## Usage
 
 ```sh

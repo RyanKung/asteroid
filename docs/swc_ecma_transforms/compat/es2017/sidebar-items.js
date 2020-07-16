@@ -1,1 +1,0 @@
-initSidebarItems({"fn":[["async_to_generator","`@babel/plugin-transform-async-to-generator`"],["es2017",""]]});

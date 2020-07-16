@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Validator","This transform validates span on debug mode and does nothing on release mode."]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Repeat",""]],"trait":[["CompilerPass",""],["Repeated",""],["RepeatedPass",""]]});

@@ -1,1 +1,0 @@
-initSidebarItems({"struct":[["Capturing","Note: Lexer need access to parser's context to lex correctly."],["TokensInput",""]],"trait":[["Tokens",""]]});
