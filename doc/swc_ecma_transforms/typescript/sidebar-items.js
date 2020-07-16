@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["strip","Strips type annotations out."]]});

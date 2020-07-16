@@ -1,0 +1,1 @@
+initSidebarItems({"mod":[["simplify","Ported from closure compiler."]],"struct":[["InlineGlobals",""],["JsonParse","Trnasform to optimize performance of literals."]]});

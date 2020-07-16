@@ -1,6 +1,7 @@
 #![warn(non_upper_case_globals)]
 #![feature(box_syntax)]
 #![feature(box_patterns)]
+
 use std::env;
 use std::sync::Arc;
 use std::cell::{RefCell, RefMut};

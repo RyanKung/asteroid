@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["es3","Make output es3-compatible."]],"struct":[["MemberExprLit","babel: `transform-member-expression-literals`"],["PropertyLiteral","babel: `transform-property-literals`"],["ReservedWord","babel: `@babel/plugin-transform-reserved-words`"]]});
