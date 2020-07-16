@@ -1,7 +1,7 @@
 Asteroid
 ================
 
-## Useage
+## Usage
 
 ```sh
 asteroid <filepath>
