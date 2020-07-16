@@ -5,8 +5,9 @@ use swc::common::SourceMap;
 use swc::common::FileName;
 use swc::ecmascript::parser::{lexer::Lexer, Capturing, Parser, Session, SourceFileInput, Syntax};
 use swc::ecmascript::ast::Script;
+use swc::common::SourceFile;
 
-pub fn parse_file(filepath: &Path) -> Script {
+pub fn parse_file(filepath: &Path) -> (Script, Arc<SourceMap>) {
     let cm: Arc<SourceMap> = Default::default();
     let handler = errors::Handler::with_tty_emitter(errors::ColorConfig::Auto, true, false, Some(cm.clone()));
     let session = Session { handler: &handler };
@@ -31,11 +32,11 @@ pub fn parse_file(filepath: &Path) -> Script {
         })
         .expect("Failed to parse module.");
 
-    return script;
+    (script, cm)
 }
 
 
-pub fn parse_code(code: &str) -> Script {
+pub fn parse_code(code: &str) -> (Script, Arc<SourceMap>) {
     let cm: Arc<SourceMap> = Default::default();
     let handler = errors::Handler::with_tty_emitter(errors::ColorConfig::Auto, true, false, Some(cm.clone()));
     let session = Session { handler: &handler };
@@ -60,5 +61,5 @@ pub fn parse_code(code: &str) -> Script {
         })
         .expect("Failed to parse module.");
 
-    return script;
+    (script, cm)
 }

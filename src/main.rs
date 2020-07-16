@@ -1,24 +1,28 @@
 #![warn(non_upper_case_globals)]
-
+#![feature(box_syntax)]
+#![feature(box_patterns)]
 use std::env;
+use std::sync::Arc;
 use std::cell::{RefCell, RefMut};
 use std::path::Path;
 use swc::ecmascript::ast;
 use swc::common::Span;
+use swc::common::SourceMap;
 use serde_json::json;
 use serde_json::to_value;
 use asteroid::typescript::ast::Syntax;
 use asteroid::typescript::ast::Callback;
 use asteroid::typescript::ast::audit_script;
 use asteroid::typescript::parser;
-use asteroid::report::{self, Reporter};
+use asteroid::report::{self, Reporter, Source};
 
 
 fn callback(
     syn: &Syntax,
     locate: Option<&Span>,
-    mut reporter: RefMut<Reporter>)
-{
+    mut reporter: RefMut<Reporter>,
+    cm: Arc<SourceMap>
+) {
     match syn {
         Syntax::Callee(expr) => {
             match expr {
@@ -32,14 +36,22 @@ fn callback(
                             "call_type": "PureCallee",
                             "func_name": i.sym.to_ascii_lowercase()
                         }),
+                        {
+                            match locate {
+                                Some(l) => {
+                                    Source::new(l, cm)
+                                },
+                                None => None
+                            }
+                        },
                         None,
                         None
                     )
                 },
                 ast::Expr::Member(i) => {
                     if let ast::ExprOrSuper::Expr(e) = &i.obj {
-                        match &**e {
-                            ast::Expr::Ident(id) => {
+                        match e {
+                            box ast::Expr::Ident(id) => {
                                 if let ast::Expr::Ident(prop) = &*i.prop {
                                     reporter.report(
                                         report::Kind::MethodCall,
@@ -54,6 +66,14 @@ fn callback(
                                                 prop.sym.to_ascii_lowercase()
                                             )
                                         }),
+                                        {
+                                            match locate {
+                                                Some(l) => {
+                                                    Source::new(l, cm)
+                                                },
+                                                None => None
+                                            }
+                                        },
                                         None,
                                         None
                                     )
@@ -67,6 +87,14 @@ fn callback(
                                             "call_type": "MemberCallee",
                                             "func_name": "UnknowYet!"
                                         }),
+                                        {
+                                            match locate {
+                                                Some(l) => {
+                                                    Source::new(l, cm)
+                                                },
+                                                None => None
+                                            }
+                                        },
                                         None,
                                         Some("Invalid Nested Expr".to_string())
                                     );
@@ -82,6 +110,14 @@ fn callback(
                                         "call_type": "MemberCallee",
                                         "func_name": "UnknowYet!"
                                     }),
+                                    {
+                                        match locate {
+                                            Some(l) => {
+                                                Source::new(l, cm)
+                                            },
+                                            None => None
+                                        }
+                                    },
                                     None,
                                     Some("Invalid Nested Expr".to_string())
                                 );
@@ -103,6 +139,7 @@ fn callback(
                                     )
                                 }),
                                 None,
+                                None,
                                 Some("SuperCall of unknow obj".to_string())
                             );
                         }
@@ -118,6 +155,14 @@ fn callback(
                             "call_type": "UnAuditedCallee",
                             "func_name": "UnKnowYet!"
                         }),
+                        {
+                            match locate {
+                                Some(l) => {
+                                    Source::new(l, cm)
+                                },
+                                None => None
+                            }
+                        },
                         None,
                         None
                     );
@@ -132,10 +177,10 @@ fn callback(
 fn main() {
     let reporter: RefCell<Reporter> = RefCell::new(Reporter::new());
     let args: Vec<String> = env::args().collect();
-    let script = parser::parse_file(Path::new(&args[1]));
-    let callback_wrapper: Callback = Box::new(move |x, y| {
-        callback(x, y, reporter.borrow_mut());
-        Box::new(reporter.clone())
+    let (script, cm) = parser::parse_file(Path::new(&args[1]));
+    let callback_wrapper: Callback = box (move |x, y| {
+        callback(x, y, reporter.borrow_mut(), cm.clone());
+        box reporter.clone()
     });
     match audit_script(&script, &Some(callback_wrapper)) {
         Some(ret) => {

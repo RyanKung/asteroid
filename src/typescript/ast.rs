@@ -41,8 +41,12 @@ pub fn audit_script(script: &ast::Script, callback: &Option<Callback>) -> Option
 
 
 pub fn audit_stmts(stmts: &Vec<ast::Stmt>, callback: &Option<Callback>) {
-    for stmt in stmts {
-        audit_stmt(&stmt, callback);
+    match &stmts[..] {
+        [] => (),
+        [xs@.., x] => {
+            audit_stmt(x, callback);
+            audit_stmts(&xs.to_vec(), callback)
+        },
     }
 }
 
@@ -54,7 +58,7 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
             audit_stmt(&s.body, callback);
         },
         ast::Stmt::Return(s) => {
-            if let Some(expr) = &s.arg {
+            if let Some(ref expr) = s.arg {
                 audit_expr(expr, callback);
             }
         },
@@ -68,7 +72,7 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
         ast::Stmt::If(s) => {
             audit_expr(&s.test, callback);
             audit_stmt(&s.cons, callback);
-            if let Some(stmt) = &s.alt {
+            if let Some(ref stmt) = s.alt {
                 audit_stmt(stmt, callback);
             }
 
@@ -76,7 +80,7 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
         ast::Stmt::Switch(s) => {
             audit_expr(&s.discriminant, callback);
             for i in &s.cases {
-                if let Some(expr) = &i.test {
+                if let Some(ref expr) = i.test {
                     audit_expr(&expr, callback);
                 }
             }
@@ -86,13 +90,13 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
         },
         ast::Stmt::Try(s) => {
             audit_block(&s.block, callback);
-            if let Some(h) = &s.handler {
-                if let Some(p) = &h.param {
+            if let Some(ref h) = s.handler {
+                if let Some(ref p) = h.param {
                     audit_pat(&p, callback);
                 };
                 audit_block(&h.body, callback);
             }
-            if let Some(f) = &s.finalizer {
+            if let Some(ref f) = s.finalizer {
                 audit_block(&f, callback)
             }
         },
@@ -115,20 +119,20 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
                     }
                 }
             }
-            if let Some(test) = &s.test {
+            if let Some(ref test) = s.test {
                 audit_expr(test, callback);
             }
-            if let Some(update) = &s.update {
+            if let Some(ref update) = s.update {
                 audit_expr(update, callback);
             }
             audit_stmt(&s.body, callback);
         },
         ast::Stmt::ForIn(s) => {
-            match &s.left {
-                ast::VarDeclOrPat::VarDecl(e) => {
+            match s.left {
+                ast::VarDeclOrPat::VarDecl(ref e) => {
                     audit_var_decl(&e, callback);
                 },
-                ast::VarDeclOrPat::Pat(e) => {
+                ast::VarDeclOrPat::Pat(ref e) => {
                     audit_pat(&e, callback);
                 }
             }
@@ -136,11 +140,11 @@ pub fn audit_stmt(stmt: &ast::Stmt, callback: &Option<Callback>) {
             audit_stmt(&s.body, callback);
         },
         ast::Stmt::ForOf(s) => {
-            match &s.left {
-                ast::VarDeclOrPat::VarDecl(e) => {
+            match s.left {
+                ast::VarDeclOrPat::VarDecl(ref e) => {
                     audit_var_decl(&e, callback);
                 },
-                ast::VarDeclOrPat::Pat(e) => {
+                ast::VarDeclOrPat::Pat(ref e) => {
                     audit_pat(&e, callback);
                 }
             }
@@ -196,7 +200,7 @@ fn audit_pat(pat: &ast::Pat, callback: &Option<Callback>) {
 fn audit_var_decl(decl: &ast::VarDecl, callback: &Option<Callback>) {
     for d in &decl.decls {
         audit_pat(&d.name, callback);
-        if let Some(expr) = &d.init {
+        if let Some(ref expr) = d.init {
             audit_expr(expr, callback);
         }
     }
@@ -264,7 +268,7 @@ fn audit_class_member(cls_m: &ast::ClassMember,  callback: &Option<Callback>) {
             for p in &s.params {
                 audit_param_prop(&p, callback);
             }
-            if let Some(body) = &s.body {
+            if let Some(ref body) = s.body {
                 audit_block(&body, callback);
             }
 
@@ -278,7 +282,7 @@ fn audit_class_member(cls_m: &ast::ClassMember,  callback: &Option<Callback>) {
         },
         ast::ClassMember::ClassProp(s) => {
             audit_expr(&s.key, callback);
-            if let Some(expr) = &s.value {
+            if let Some(ref expr) = s.value {
                 audit_expr(&expr, callback);
             }
             for d in &s.decorators {
@@ -286,7 +290,7 @@ fn audit_class_member(cls_m: &ast::ClassMember,  callback: &Option<Callback>) {
             }
         },
         ast::ClassMember::PrivateProp(s) => {
-            if let Some(expr) = &s.value {
+            if let Some(ref expr) = s.value {
                 audit_expr(&expr, callback);
             }
             for d in &s.decorators {
@@ -337,9 +341,9 @@ fn audit_param_prop(prop: &ast::ParamOrTsParamProp, callback: &Option<Callback>)
             for d in &s.decorators {
                 audit_expr(&d.expr, callback);
             }
-            match &s.param {
+            match s.param {
                 ast::TsParamPropParam::Ident(_) => (),
-                ast::TsParamPropParam::Assign(p) => {
+                ast::TsParamPropParam::Assign(ref p) => {
                     audit_pat(&ast::Pat::from(p.clone()), callback);
                 },
             }
@@ -363,7 +367,7 @@ fn audit_fn(func: &ast::Function, callback: &Option<Callback>) {
     for d in &func.decorators {
         audit_expr(&d.expr, callback);
     }
-    if let Some(stmt) = &func.body {
+    if let Some(ref stmt) = func.body {
         audit_block(&stmt, callback);
     }
     if let Some(f) = callback {
@@ -449,16 +453,16 @@ pub fn audit_expr(expr: &ast::Expr, callback: &Option<Callback>) {
             audit_expr(&s.right, callback);
         },
         ast::Expr::Assign(s) => {
-            match &s.left {
-                ast::PatOrExpr::Expr(s) => audit_expr(&s, callback),
-                ast::PatOrExpr::Pat(s) => audit_pat(&s, callback)
+            match s.left {
+                ast::PatOrExpr::Expr(ref s) => audit_expr(&s, callback),
+                ast::PatOrExpr::Pat(ref s) => audit_pat(&s, callback)
             }
             audit_expr(&s.right, callback);
 
         },
         ast::Expr::Member(s) => {
-            match &s.obj {
-                ast::ExprOrSuper::Expr(s) => audit_expr(&s, callback),
+            match s.obj {
+                ast::ExprOrSuper::Expr(ref s) => audit_expr(&s, callback),
                 ast::ExprOrSuper::Super(_) => ()
             }
         },
@@ -546,18 +550,18 @@ pub fn audit_prop(prop: &ast::Prop, callback: &Option<Callback>) {
         ast::Prop::Shorthand(_) => (),
         ast::Prop::KeyValue(s) => {
             audit_expr(&s.value, callback);
-            match &s.key {
-                ast::PropName::Computed(s) => audit_expr(&s.expr, callback),
+            match s.key {
+                ast::PropName::Computed(ref s) => audit_expr(&s.expr, callback),
                 _ => ()
             }
         },
         ast::Prop::Assign(s) => audit_expr(&s.value, callback),
         ast::Prop::Getter(s) => {
-            match &s.key {
-                ast::PropName::Computed(s) => audit_expr(&s.expr, callback),
+            match s.key {
+                ast::PropName::Computed(ref s) => audit_expr(&s.expr, callback),
                 _ => ()
             }
-            if let Some(body) = &s.body {
+            if let Some(ref body) = s.body {
                 audit_block(&body, callback);
             }
         },
