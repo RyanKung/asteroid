@@ -1,0 +1,1 @@
+initSidebarItems({"fn":[["class_properties","Impl note"],["export","`@babel/plugin-proposal-export-default-from` and `@babel/plugin-proposal-export-namespace-from`"],["nullish_coalescing",""],["optional_chaining",""]],"mod":[["decorators",""]]});
