@@ -11,6 +11,15 @@ cargo doc --open
 
 ## Usage
 
+```python
+import ctypes
+lib = ctypes.cdll.LoadLibrary("target/debug/libasteroid.dylib")
+lib.report.restypes = ctypes.c_char_p
+lib.report.argtypes = (ctypes.c_char_p, )
+lib.report("./asteroid/tests/greeter.ts".encode("utf-8"))
+```
+
+
 ```sh
 asteroid <filepath>
 ```

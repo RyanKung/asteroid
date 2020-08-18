@@ -5,7 +5,6 @@ use swc::common::SourceMap;
 use swc::common::FileName;
 use swc::ecmascript::parser::{lexer::Lexer, Capturing, Parser, Session, SourceFileInput, Syntax};
 use swc::ecmascript::ast::Script;
-use swc::common::SourceFile;
 
 pub fn parse_file(filepath: &Path) -> (Script, Arc<SourceMap>) {
     let cm: Arc<SourceMap> = Default::default();
@@ -13,7 +12,7 @@ pub fn parse_file(filepath: &Path) -> (Script, Arc<SourceMap>) {
     let session = Session { handler: &handler };
     let fm = cm
         .load_file(&filepath)
-        .expect("failed to load file");
+        .expect(format!("failed to load file: {:?}", filepath.to_str().unwrap()).as_str());
 
     let syntax = Syntax::Typescript(Default::default());
     let lexer = Lexer::new(

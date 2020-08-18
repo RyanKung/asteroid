@@ -1,4 +1,8 @@
+#![warn(non_upper_case_globals)]
 #![feature(box_patterns)]
+#![feature(box_syntax)]
+
+
 
 //! Asteroid
 //! ================
@@ -253,6 +257,14 @@
 //! }
 //! ```
 //!
+//! ## Useage
+//! ```python
+//! import ctypes
+//! lib = ctypes.cdll.LoadLibrary("target/debug/libasteroid.dylib")
+//! lib.report.restypes = ctypes.c_char_p
+//! lib.report.argtypes = (ctypes.c_char_p, )
+//! lib.report("./asteroid/tests/greeter.ts".encode("utf-8"))
 
 pub mod typescript;
 pub mod report;
+pub mod cmd;
